@@ -1,33 +1,651 @@
-# thai-language-hub
-Thai Language Hub - V1.0
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controller RAS - Thai Language Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        .perspective { perspective: 1500px; }
+        .preserve-3d { 
+            transform-style: preserve-3d; 
+            -webkit-transform-style: preserve-3d;
+        }
+        .backface-hidden { 
+            backface-visibility: hidden; 
+            -webkit-backface-visibility: hidden;
+            outline: 1px solid transparent;
+        }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        .nav-zone { position: fixed; top: 0; bottom: 0; width: 10%; display: flex; align-items: center; justify-content: center; z-index: 10; transition: background 0.3s; cursor: pointer; }
+        .nav-zone:hover { background: rgba(255,255,255,0.02); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #18181b; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #ec4899; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex items-center justify-center font-sans overflow-hidden">
+    <div id="root" class="w-full h-screen flex items-center justify-center"></div>
 
-App interattiva progettata per il consolidamento mnemonico delle basi della lingua thailandese attraverso un approccio di stimolo-risposta.
-Obiettivi dell'App
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
 
-    Apprendimento mirato: Focus su saluti, emergenze, ristorazione, orientamento e relazioni.
+        // DATABASE INCORPORATO: NESSUN FILE ESTERNO NECESSARIO
+        const database = {
+            languages: {
+                id: "languages",
+                name: "Thai Mastery",
+                subtitle: "Apprendimento Lingua Thailandese",
+                icon: "fas fa-language",
+                color: "pink",
+                decks: {
+                    saluti: {
+                        title: "1. Saluti e Cortesia",
+                        description: "Formule base e convenzioni sociali.",
+                        cards: [
+                            { id: 1, it: "Ciao / Salve", action: "สวัสดี (Sawatdee)", audit: "Come inizio la conversazione in modo formale?" },
+                            { id: 2, it: "Grazie", action: "ขอบคุณ (Khop khun)", audit: "Mostra gratitudine per un'azione." },
+                            { id: 3, it: "Scusa / Mi dispiace", action: "ขอโทษ (Khor thot)", audit: "Ho commesso un errore o cerco attenzione?" },
+                            { id: 4, it: "Sì", action: "ใช่ (Chai)", audit: "Conferma operativa richiesta." },
+                            { id: 5, it: "No", action: "ไม่ (Mai)", audit: "Negazione diretta." },
+                            { id: 6, it: "Come stai?", action: "สบายดีไหม (Sabai dee mai?)", audit: "Verifica dello stato di salute dell'interlocutore." },
+                            { id: 7, it: "Sto bene", action: "สบายดี (Sabai dee)", audit: "Conferma di stato positivo." },
+                            { id: 8, it: "Non capisco", action: "ไม่เข้าใจ (Mai kao jai)", audit: "Dichiarazione di limite di comprensione." },
+                            { id: 9, it: "Piacere di conoscerti", action: "ยินดีที่ได้รู้จัก (Yin dee tee dai roo jak)", audit: "Formula formale al primo incontro." },
+                            { id: 10, it: "Arrivederci / A presto", action: "แล้วพบกันใหม่ (Laew pob gun mai)", audit: "Chiusura del loop conversazionale." }
+                        ]
+                    },
+                    emergenze: {
+                        title: "2. Emergenze e Sopravvivenza",
+                        description: "Orientamento rapido in situazioni critiche.",
+                        cards: [
+                            { id: 1, it: "Aiuto!", action: "ช่วยด้วย (Chuay duay!)", audit: "Chiamata di emergenza immediata." },
+                            { id: 2, it: "Dov'è il bagno?", action: "ห้องน้ำอยู่ที่ไหน (Hong nam yoo tee nai?)", audit: "Ricerca infrastruttura di base." },
+                            { id: 3, it: "Ospedale", action: "โรงพยาบาล (Rong pa ya ban)", audit: "Identificazione centro medico." },
+                            { id: 4, it: "Quanto costa?", action: "ราคาเท่าไหร่ (Ra ka tao rai?)", audit: "Avvio trattativa commerciale locale." },
+                            { id: 5, it: "Troppo caro", action: "แพงไป (Paeng pai)", audit: "Leva negoziale per abbassare il prezzo." },
+                            { id: 6, it: "Soldi / Contanti", action: "เงิน (Ngoen)", audit: "Scambio valuta." },
+                            { id: 7, it: "Polizia", action: "ตำรวจ (Tam ruat)", audit: "Richiesta supporto autorità." },
+                            { id: 8, it: "Ho perso il portafoglio", action: "ทำกระเป๋าตังค์หาย (Tam kra pao tang hai)", audit: "Segnalazione blocco risorse." },
+                            { id: 9, it: "Acqua", action: "น้ำ (Nam)", audit: "Approvvigionamento idrico base." },
+                            { id: 10, it: "Aiuto medico", action: "ต้องการหมอ (Tong kan mor)", audit: "Richiesta intervento sanitario." }
+                        ]
+                    },
+                    cibo: {
+                        title: "3. Cibo e Ristorazione",
+                        description: "Nutrizione e ordini alimentari.",
+                        cards: [
+                            { id: 1, it: "Mangiare", action: "กิน (Kin)", audit: "Azione principale nutrizione." },
+                            { id: 2, it: "Buono / Delizioso", action: "อร่อย (Aroi)", audit: "Feedback positivo sulla qualità del pasto." },
+                            { id: 3, it: "Non piccante, per favore", action: "ไม่เผ็ด (Mai phet)", audit: "Limitazione spezie essenziale in Thailandia." },
+                            { id: 4, it: "Riso", action: "ข้าว (Khao)", audit: "Base nutrizionale primaria." },
+                            { id: 5, it: "Pollo", action: "ไก่ (Gai)", audit: "Proteina bianca." },
+                            { id: 6, it: "Maiale", action: "หมู (Moo)", audit: "Proteina rossa." },
+                            { id: 7, it: "Pesce / Frutti di mare", action: "อาหารทะเล (Ahan ta-le)", audit: "Specialità ittica." },
+                            { id: 8, it: "Senza zucchero", action: "ไม่ใส่น้ำตาล (Mai sai nam tan)", audit: "Ottimizzazione del macro per bevande." },
+                            { id: 9, it: "Il conto, per favore", action: "เก็บตังค์ด้วย (Gep tang duay)", audit: "Chiusura transazione ristorante." },
+                            { id: 10, it: "Ho fame", action: "หิวข้าว (Hiw khao)", audit: "Dichiarazione di necessità energetica." }
+                        ]
+                    },
+                    orientamento: {
+                        title: "4. Orientamento e Spostamenti",
+                        description: "Navigazione e logistica.",
+                        cards: [
+                            { id: 1, it: "Andare", action: "ไป (Pai)", audit: "Avvio spostamento." },
+                            { id: 2, it: "Destra", action: "ขวา (Kwa)", audit: "Navigazione: direzione." },
+                            { id: 3, it: "Sinistra", action: "ซ้าย (Sai)", audit: "Navigazione: direzione." },
+                            { id: 4, it: "Dritto", action: "ตรงไป (Trong pai)", audit: "Avanzamento sulla linea attuale." },
+                            { id: 5, it: "Fermati qui", action: "จอดที่นี่ (Jot tee nee)", audit: "Comando di stop per Taxi/Tuk-Tuk." },
+                            { id: 6, it: "Treno / Skytrain", action: "รถไฟฟ้า (Rot fai fa)", audit: "Infrastruttura di trasporto urbano rapido." },
+                            { id: 7, it: "Aeroporto", action: "สนามบิน (Sa-nam bin)", audit: "Hub di trasporto internazionale." },
+                            { id: 8, it: "Lontano", action: "ไกล (Glai)", audit: "Stima distanza elevata." },
+                            { id: 9, it: "Vicino", action: "ใกล้ (Glai - tono diverso)", audit: "Stima distanza ridotta." },
+                            { id: 10, it: "Adesso", action: "ตอนนี้ (Ton nee)", audit: "Esecuzione immediata." }
+                        ]
+                    },
+                    relazioni: {
+                        title: "5. Relazioni e Famiglia",
+                        description: "Comunicazione emotiva e nucleo familiare.",
+                        cards: [
+                            { id: 1, it: "Ti amo", action: "ผมรักคุณ (Phom rak khun)", audit: "Dichiarazione d'affetto (parlante maschile)." },
+                            { id: 2, it: "Mi manchi", action: "คิดถึงคุณ (Kid teung khun)", audit: "Connessione emotiva a distanza." },
+                            { id: 3, it: "Sei bellissima", action: "คุณสวยมาก (Khun suay mak)", audit: "Apprezzamento estetico per Kook." },
+                            { id: 4, it: "Mia moglie", action: "ภรรยาของผม (Pan-ra-ya khong phom)", audit: "Identificazione status coniugale." },
+                            { id: 5, it: "Famiglia", action: "ครอบครัว (Krob krua)", audit: "Nucleo sociale di base." },
+                            { id: 6, it: "Sei stanca?", action: "เหนื่อยไหม (Nuey mai?)", audit: "Check dei livelli di energia di Kook." },
+                            { id: 7, it: "Andiamo a casa", action: "กลับบ้านกันเถอะ (Glub ban gun tuh)", audit: "Spostamento verso il campo base." },
+                            { id: 8, it: "Criceto", action: "หนูแฮมสเตอร์ (Nu hamster)", audit: "Termine usato per indicare Borgo Trento o Borgo Venezia." },
+                            { id: 9, it: "Cuore", action: "หัวใจ (Hua jai)", audit: "Centro affettivo." },
+                            { id: 10, it: "Molto felice", action: "มีความสุขมาก (Mee kwam suk mak)", audit: "Feedback di stato mentale eccellente." }
+                        ]
+                    }
+                }
+            }
+        };
 
-    Consolidamento: Utilizzo di logiche flashcard per testare la ritenzione del vocabolario.
+        const formatTime = (ms) => {
+            if (!ms || ms < 0) return "00:00";
+            const totalSeconds = Math.floor(ms / 1000);
+            const mins = Math.floor(totalSeconds / 60);
+            const secs = totalSeconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        };
 
-    Audit performance: Tracciamento dei dati di sessione (accuratezza, tempi di risposta) per ottimizzare il processo di apprendimento.
+        function App() {
+            const [deviceType, setDeviceType] = useState(() => localStorage.getItem('ras_thai_device') || null);
+            
+            const [view, setView] = useState('folders'); 
+            const [activeFolderKey, setActiveFolderKey] = useState(null);
+            const [activeDeckKey, setActiveDeckKey] = useState(null);
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [isFlipped, setIsFlipped] = useState(false);
+            const [stats, setStats] = useState({ hits: 0, misses: 0, total: 0 });
+            
+            const [isCompleted, setIsCompleted] = useState(false);
+            const [sessionStartTime, setSessionStartTime] = useState(null);
+            const [sessionEndTime, setSessionEndTime] = useState(null);
 
-Come utilizzarla
+            const fileInputRef = useRef(null);
 
-    Accedi all'app tramite il link [inserisci qui il link di GitHub Pages che apparirà dopo il salvataggio].
+            const [history, setHistory] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('ras_thai_history_v1');
+                    return saved ? JSON.parse(saved) : {};
+                } catch (e) {
+                    return {};
+                }
+            });
 
-    Calibrazione: Seleziona la tua piattaforma operativa (Desktop o Mobile).
+            const activeFolder = activeFolderKey ? database[activeFolderKey] : null;
+            const activeDeck = (activeFolder && activeDeckKey) ? activeFolder.decks[activeDeckKey].cards : [];
 
-    Seleziona Modulo: Scegli il set di carte (Deck) su cui desideri lavorare.
+            const selectDevice = (type) => {
+                setDeviceType(type);
+                localStorage.setItem('ras_thai_device', type);
+            };
 
-    Sessione di Addestramento:
+            const selectFolder = (key) => {
+                setActiveFolderKey(key);
+                setView('decks');
+            };
 
-        Fai clic sulla card per girarla e vedere la traduzione.
+            const selectDeck = (key) => {
+                setActiveDeckKey(key);
+                setCurrentIndex(0);
+                setIsFlipped(false);
+                setStats({ hits: 0, misses: 0, total: 0 });
+                setIsCompleted(false);
+                setSessionStartTime(Date.now());
+                setSessionEndTime(null);
+                setView('drill');
+            };
 
-        Usa i comandi rapidi (o tap) per registrare l'esito (Hit/Miss).
+            const goBack = () => {
+                if (view === 'drill') {
+                    setView('decks');
+                    setActiveDeckKey(null);
+                } else if (view === 'decks') {
+                    setView('folders');
+                    setActiveFolderKey(null);
+                } else if (view === 'analytics') {
+                    setView('folders');
+                }
+            };
+            
+            const clearHistory = () => {
+                if(window.confirm("Attenzione: Vuoi cancellare tutto lo storico delle performance?")) {
+                    localStorage.removeItem('ras_thai_history_v1');
+                    setHistory({});
+                }
+            };
 
-    Dashboard: Consulta la sezione analytics per monitorare i tuoi progressi.
+            const exportCSV = () => {
+                let csv = "Data_Setup;Mazzo_ID;Hit;Miss;Accuratezza_%;Tempo_Secondi\n";
+                Object.entries(history).forEach(([deckId, runs]) => {
+                    runs.forEach(run => {
+                        const dateStr = new Date(run.date).toLocaleString('it-IT').replace(',', '');
+                        const timeSecs = Math.round(run.timeMs / 1000);
+                        csv += `${dateStr};${deckId};${run.hits};${run.misses};${run.accuracy};${timeSecs}\n`;
+                    });
+                });
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Thai_Analytics_${new Date().toISOString().slice(0,10)}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
 
-Tecnologie utilizzate
+            const exportJSON = () => {
+                const dataStr = JSON.stringify(history, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Thai_Backup_${new Date().toISOString().slice(0,10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
 
-    React, Tailwind CSS, Babel (standalone).
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const importedData = JSON.parse(event.target.result);
+                        setHistory(importedData);
+                        localStorage.setItem('ras_thai_history_v1', JSON.stringify(importedData));
+                        alert("Database storico ripristinato con successo.");
+                    } catch (error) {
+                        alert("Errore: File backup non valido.");
+                    }
+                };
+                reader.readAsText(file);
+                e.target.value = null;
+            };
 
-    Sistema di salvataggio locale (Local Storage) per lo storico dati.
+            const nextCard = (e) => {
+                if(e) e.stopPropagation();
+                if(isCompleted) return;
+                setIsFlipped(false);
+                setTimeout(() => {
+                    setCurrentIndex((prev) => prev < activeDeck.length - 1 ? prev + 1 : prev);
+                }, 200);
+            };
+
+            const prevCard = (e) => {
+                if(e) e.stopPropagation();
+                if(isCompleted) return;
+                setIsFlipped(false);
+                setTimeout(() => {
+                    setCurrentIndex((prev) => prev > 0 ? prev - 1 : prev);
+                }, 200);
+            };
+
+            const handleScore = (isHit, e) => {
+                if(e) e.stopPropagation();
+                if(isCompleted) return;
+
+                const newHits = isHit ? stats.hits + 1 : stats.hits;
+                const newMisses = !isHit ? stats.misses + 1 : stats.misses;
+                const newTotal = stats.total + 1;
+
+                setStats({ hits: newHits, misses: newMisses, total: newTotal });
+                setIsFlipped(false);
+
+                setTimeout(() => {
+                    if (currentIndex === activeDeck.length - 1) {
+                        const end = Date.now();
+                        setSessionEndTime(end);
+                        setIsCompleted(true);
+                        
+                        const totalCards = activeDeck.length;
+                        const accuracy = totalCards > 0 ? Math.round((newHits / totalCards) * 100) : 0;
+                        const totalMs = end - sessionStartTime;
+                        
+                        const deckId = `${activeFolderKey}_${activeDeckKey}`;
+                        setHistory(prev => {
+                            const deckHistory = prev[deckId] || [];
+                            const updatedHistory = {
+                                ...prev,
+                                [deckId]: [...deckHistory, { date: new Date().toISOString(), hits: newHits, misses: newMisses, accuracy, timeMs: totalMs }]
+                            };
+                            localStorage.setItem('ras_thai_history_v1', JSON.stringify(updatedHistory));
+                            return updatedHistory;
+                        });
+                    } else {
+                        setCurrentIndex(prev => prev + 1);
+                    }
+                }, 200);
+            };
+
+            const playAudio = (e, text, langCode) => {
+                e.stopPropagation();
+                if (!text) return;
+                // Rimuove la traslitterazione tra parentesi per non confondere la sintesi vocale thai
+                const cleanText = text.replace(/\s*\(.*?\)\s*/g, '');
+                const utterance = new SpeechSynthesisUtterance(cleanText);
+                utterance.lang = langCode;
+                utterance.rate = 0.8;
+                window.speechSynthesis.speak(utterance);
+            };
+
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if (view !== 'drill' || isCompleted || deviceType === 'mobile') return;
+                    if (e.key === 'ArrowRight' && !isFlipped) nextCard();
+                    if (e.key === 'ArrowLeft' && !isFlipped) prevCard();
+                    if (e.key === ' ' || e.key === 'Enter') setIsFlipped(!isFlipped);
+                    if (isFlipped && e.key === '1') handleScore(false);
+                    if (isFlipped && e.key === '2') handleScore(true);
+                };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [currentIndex, isFlipped, view, isCompleted, deviceType]);
+
+            // --- VISTA: GATEKEEPER DI CALIBRAZIONE ---
+            if (!deviceType) {
+                return (
+                    <div className="w-full h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
+                        <div className="absolute inset-0 bg-pink-600/5 blur-[150px] rounded-full"></div>
+                        <div className="relative z-10 flex flex-col items-center max-w-lg w-full bg-zinc-900 border-[2px] border-zinc-800 rounded-[40px] p-10 shadow-2xl">
+                            <i className="fas fa-crosshairs text-pink-500 text-6xl mb-6"></i>
+                            <h1 className="text-3xl font-black text-white uppercase tracking-tighter mb-2 text-center">Calibrazione Sistema</h1>
+                            <p className="text-zinc-400 text-xs font-bold tracking-widest uppercase mb-10 text-center">Identifica la piattaforma operativa</p>
+                            
+                            <div className="flex flex-col md:flex-row gap-4 w-full">
+                                <button onClick={() => selectDevice('desktop')} className="flex-1 flex flex-col items-center gap-4 bg-zinc-950 border-[2px] border-zinc-800 hover:border-pink-500 hover:bg-zinc-800 p-8 rounded-3xl transition-all group active:scale-95">
+                                    <i className="fas fa-desktop text-4xl text-zinc-500 group-hover:text-pink-400 transition-colors"></i>
+                                    <span className="text-sm font-black text-white uppercase tracking-widest">Desktop</span>
+                                </button>
+                                
+                                <button onClick={() => selectDevice('mobile')} className="flex-1 flex flex-col items-center gap-4 bg-zinc-950 border-[2px] border-zinc-800 hover:border-pink-500 hover:bg-zinc-800 p-8 rounded-3xl transition-all group active:scale-95">
+                                    <i className="fas fa-mobile-alt text-4xl text-zinc-500 group-hover:text-pink-400 transition-colors"></i>
+                                    <span className="text-sm font-black text-white uppercase tracking-widest">Mobile</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // --- VIEWS PRINCIPALI ---
+
+            if (view === 'folders') {
+                return (
+                    <div className="w-full max-w-6xl p-8 flex flex-col items-center h-screen overflow-y-auto custom-scrollbar">
+                        <div className="flex items-center gap-4 mb-2 mt-8">
+                            <i className="fas fa-language text-pink-500 text-5xl"></i>
+                            <h1 className="text-4xl font-black tracking-tighter text-white uppercase">Thai Hub <span className="text-pink-500">V1.0</span></h1>
+                        </div>
+                        <p className="text-zinc-500 mb-10 uppercase tracking-widest text-xs font-bold w-full text-center">Apprendimento Linguistico Mirato</p>
+                        
+                        <div className="flex flex-wrap justify-center gap-4 mb-12 border-b border-zinc-800 pb-8 w-full max-w-4xl">
+                            <button onClick={() => setView('analytics')} className="bg-pink-600 hover:bg-pink-500 text-white transition-colors text-xs uppercase tracking-widest font-black flex items-center gap-2 px-6 py-3 rounded-xl shadow-lg active:scale-95">
+                                <i className="fas fa-chart-line"></i> Dashboard
+                            </button>
+                            <button onClick={exportCSV} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors text-xs uppercase tracking-widest font-black flex items-center gap-2 px-4 py-3 rounded-xl border border-zinc-700 active:scale-95">
+                                <i className="fas fa-file-csv"></i> Estrai CSV
+                            </button>
+                            <button onClick={() => fileInputRef.current.click()} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors text-xs uppercase tracking-widest font-black flex items-center gap-2 px-4 py-3 rounded-xl border border-zinc-700 active:scale-95">
+                                <i className="fas fa-upload"></i> Backup Dati
+                            </button>
+                            <button onClick={() => { setDeviceType(null); localStorage.removeItem('ras_thai_device'); }} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors text-xs uppercase tracking-widest font-black flex items-center gap-2 px-4 py-3 rounded-xl border border-zinc-700 active:scale-95">
+                                <i className="fas fa-exchange-alt"></i> Device: {deviceType.toUpperCase()}
+                            </button>
+                            <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".json" className="hidden" />
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-8 w-full max-w-md pb-12">
+                            {Object.entries(database).map(([key, folder]) => (
+                                <div key={key} 
+                                     onClick={() => selectFolder(key)}
+                                     className={`bg-zinc-900 border-[2px] border-zinc-800 p-10 rounded-[40px] cursor-pointer hover:border-${folder.color}-500 hover:bg-zinc-800/50 transition-all group relative overflow-hidden flex flex-col items-center text-center shadow-2xl`}>
+                                    <div className={`absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-${folder.color}-500 to-transparent opacity-50`}></div>
+                                    <i className={`${folder.icon} text-6xl text-${folder.color}-500 mb-6 group-hover:scale-110 transition-transform duration-500`}></i>
+                                    <h2 className="text-3xl font-black text-white mb-2 tracking-tight">{folder.name}</h2>
+                                    <p className="text-zinc-400 text-sm tracking-widest uppercase font-bold">{folder.subtitle}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'analytics') {
+                const allRuns = [];
+                Object.entries(history).forEach(([deckId, runs]) => {
+                    runs.forEach(run => {
+                        allRuns.push({ deckId, ...run });
+                    });
+                });
+                allRuns.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                return (
+                    <div className="w-full max-w-5xl p-8 flex flex-col h-screen overflow-y-auto custom-scrollbar">
+                        <div className="w-full flex items-center mb-8 relative">
+                            <button onClick={goBack} className="absolute left-0 bg-zinc-900 border border-zinc-800 w-12 h-12 rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:border-pink-500 transition-colors shadow-lg">
+                                <i className="fas fa-arrow-left"></i>
+                            </button>
+                            <div className="w-full text-center flex flex-col items-center">
+                                <i className="fas fa-chart-bar text-pink-500 text-3xl mb-2"></i>
+                                <h1 className="text-3xl font-black tracking-tighter text-white uppercase">Cruscotto Analitico</h1>
+                                <p className="text-zinc-500 uppercase tracking-widest text-xs font-bold mt-2">Storico Apprendimento</p>
+                            </div>
+                        </div>
+
+                        {allRuns.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-zinc-600">
+                                <i className="fas fa-database text-6xl mb-4 opacity-50"></i>
+                                <p className="font-bold tracking-widest uppercase">Nessun dato registrato.</p>
+                            </div>
+                        ) : (
+                            <div className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl">
+                                <table className="w-full text-left text-sm text-zinc-400">
+                                    <thead className="bg-zinc-950 text-xs uppercase font-black tracking-widest border-b border-zinc-800">
+                                        <tr>
+                                            <th className="px-6 py-4">Data e Ora</th>
+                                            <th className="px-6 py-4">ID Mazzo</th>
+                                            <th className="px-6 py-4 text-center">Hit</th>
+                                            <th className="px-6 py-4 text-center">Miss</th>
+                                            <th className="px-6 py-4 text-center">Accuratezza</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-zinc-800/50">
+                                        {allRuns.map((run, idx) => (
+                                            <tr key={idx} className="hover:bg-zinc-800/30 transition-colors">
+                                                <td className="px-6 py-4 font-mono">{new Date(run.date).toLocaleString('it-IT')}</td>
+                                                <td className="px-6 py-4 font-bold text-white">{run.deckId.replace('languages_', '').toUpperCase()}</td>
+                                                <td className="px-6 py-4 text-center text-green-400 font-black">{run.hits}</td>
+                                                <td className="px-6 py-4 text-center text-red-400 font-black">{run.misses}</td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <span className={`px-2 py-1 rounded-md text-xs font-black ${run.accuracy >= 80 ? 'bg-green-500/20 text-green-400' : run.accuracy >= 60 ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/20 text-red-400'}`}>
+                                                        {run.accuracy}%
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+
+            if (view === 'decks') {
+                return (
+                    <div className="w-full max-w-6xl p-8 flex flex-col items-center h-screen overflow-y-auto custom-scrollbar">
+                        <div className="w-full flex items-center mb-8 relative">
+                            <button onClick={goBack} className="absolute left-0 bg-zinc-900 border border-zinc-800 w-12 h-12 rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:border-pink-500 transition-colors shadow-lg">
+                                <i className="fas fa-arrow-left"></i>
+                            </button>
+                            <div className="w-full text-center flex flex-col items-center">
+                                <i className={`${activeFolder.icon} text-${activeFolder.color}-500 text-3xl mb-2`}></i>
+                                <h1 className="text-3xl font-black tracking-tighter text-white uppercase">{activeFolder.name}</h1>
+                                <p className="text-zinc-500 uppercase tracking-widest text-xs font-bold mt-2">Seleziona Modulo Operativo</p>
+                            </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full mt-4 pb-12">
+                            {Object.entries(activeFolder.decks).map(([key, deck]) => {
+                                const deckId = `${activeFolderKey}_${key}`;
+                                const deckHistory = history[deckId] || [];
+                                const bestAcc = deckHistory.length > 0 ? Math.max(...deckHistory.map(h => h.accuracy)) : 0;
+                                const runs = deckHistory.length;
+
+                                let statusText = "INIZIA ORA";
+                                let statusColor = "text-zinc-400";
+                                let statusBg = "bg-zinc-800/50";
+                                let statusBorder = "border-zinc-700";
+
+                                if (runs > 0) {
+                                    if (bestAcc >= 80) {
+                                        statusText = "COMPLETATO"; statusColor = "text-green-400"; statusBg = "bg-green-500/10"; statusBorder = "border-green-500/30";
+                                    } else if (bestAcc >= 50) {
+                                        statusText = "IN ADDESTRAMENTO"; statusColor = "text-amber-400"; statusBg = "bg-amber-500/10"; statusBorder = "border-amber-500/50";
+                                    } else {
+                                        statusText = "ALLARME CRITICO"; statusColor = "text-red-400"; statusBg = "bg-red-500/20"; statusBorder = "border-red-500";
+                                    }
+                                }
+
+                                return (
+                                    <div key={key} onClick={() => selectDeck(key)} className={`bg-zinc-900 border-[2px] border-zinc-800 p-8 rounded-[30px] cursor-pointer hover:border-${activeFolder.color}-500 hover:bg-zinc-800/80 transition-all group relative overflow-hidden flex flex-col justify-between min-h-[250px] shadow-lg pb-10`}>
+                                        <div className={`absolute top-0 left-0 w-2 h-full bg-${activeFolder.color}-600 transform -translate-x-full group-hover:translate-x-0 transition-transform z-10`}></div>
+                                        <div className="relative z-10">
+                                            <h2 className="text-2xl font-black text-white mb-3 tracking-tight">{deck.title}</h2>
+                                            <p className="text-zinc-400 text-sm leading-relaxed">{deck.description}</p>
+                                        </div>
+                                        <div className="mt-6 relative z-10 flex flex-col flex-grow justify-end">
+                                            <div className={`flex justify-between items-center text-xs font-mono font-bold text-${activeFolder.color}-400 pt-4 border-t border-zinc-800/50`}>
+                                                <span className="shrink-0">{deck.cards.length} TARGETS</span>
+                                                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${statusBg} ${statusBorder} transition-all duration-300`}>
+                                                    <span className={`text-[9px] md:text-[10px] uppercase tracking-widest font-black ${statusColor}`}>{statusText}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            }
+
+            const activeColor = activeFolder.color;
+
+            if (isCompleted) {
+                const totalCards = activeDeck.length;
+                const accuracy = totalCards > 0 ? Math.round((stats.hits / totalCards) * 100) : 0;
+                let performanceColor = accuracy >= 80 ? "text-green-400" : accuracy >= 60 ? "text-amber-400" : "text-red-500";
+                let performanceMsg = accuracy >= 80 ? "Prestazione Ottimale" : accuracy >= 60 ? "Accettabile, ma migliorabile" : "Richiede Revisione";
+
+                return (
+                    <div className="relative w-full h-full flex flex-col items-center justify-center px-4">
+                        <div className="w-full max-w-xl bg-zinc-900 border-[2px] border-zinc-800 rounded-[40px] p-12 flex flex-col items-center shadow-2xl relative overflow-hidden">
+                            <i className={`fas fa-flag-checkered text-6xl text-${activeColor}-500 mb-6`}></i>
+                            <h2 className="text-3xl font-black text-white mb-2 tracking-tight uppercase">Sessione Completata</h2>
+                            
+                            <div className="bg-zinc-950 border border-zinc-800/80 p-6 rounded-3xl flex flex-col items-center shadow-inner mt-6 w-full">
+                                <span className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em] mb-3">Accuratezza</span>
+                                <span className={`text-5xl font-black ${performanceColor} drop-shadow-md`}>{accuracy}%</span>
+                                <span className="text-zinc-400 text-xs font-mono font-bold mt-3 tracking-widest">{stats.hits} / {totalCards} Hit</span>
+                                <span className={`text-[10px] font-black uppercase tracking-[0.2em] mt-4 ${performanceColor}`}>{performanceMsg}</span>
+                            </div>
+
+                            <div className="flex gap-4 w-full mt-8">
+                                <button onClick={() => selectDeck(activeDeckKey)} className={`flex-1 bg-${activeColor}-600 hover:bg-${activeColor}-500 text-white text-xs font-black uppercase tracking-[0.2em] py-4 rounded-2xl transition-all shadow-lg active:scale-95`}>
+                                    <i className="fas fa-redo mr-2"></i> Riprova
+                                </button>
+                                <button onClick={goBack} className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-black uppercase tracking-[0.2em] py-4 rounded-2xl transition-all shadow-lg active:scale-95 border border-zinc-700">
+                                    <i className="fas fa-home mr-2"></i> Menu
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            const card = activeDeck[currentIndex];
+
+            return (
+                <div className="relative w-full h-full flex flex-col items-center justify-center px-4 md:px-24">
+                    
+                    {!isFlipped && deviceType !== 'mobile' && (
+                        <>
+                            <div className="nav-zone left-0" onClick={prevCard}><i className="fas fa-chevron-left text-zinc-800 text-5xl opacity-20 hover:opacity-100 transition-opacity"></i></div>
+                            <div className="nav-zone right-0" onClick={nextCard}><i className="fas fa-chevron-right text-zinc-800 text-5xl opacity-20 hover:opacity-100 transition-opacity"></i></div>
+                        </>
+                    )}
+
+                    <div className="absolute top-6 left-6 right-6 flex justify-between items-start z-20 pointer-events-none">
+                        <div className="pointer-events-auto flex items-center gap-4">
+                            <button onClick={goBack} className={`bg-zinc-900 border border-zinc-800 w-12 h-12 rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:border-${activeColor}-500 transition-colors shadow-lg`}>
+                                <i className="fas fa-arrow-left"></i>
+                            </button>
+                        </div>
+                        <div className="bg-zinc-900 border-[2px] border-zinc-800 p-2 px-4 rounded-2xl flex items-center gap-4 text-sm font-mono shadow-2xl pointer-events-auto">
+                            <div className="flex flex-col items-center">
+                                <span className="text-zinc-600 text-[8px] font-black uppercase tracking-widest mb-1">Hit</span>
+                                <span className="text-green-400 font-black text-base">{stats.hits}</span>
+                            </div>
+                            <div className="w-px h-8 bg-zinc-800"></div>
+                            <div className="flex flex-col items-center">
+                                <span className="text-zinc-600 text-[8px] font-black uppercase tracking-widest mb-1">Miss</span>
+                                <span className="text-red-400 font-black text-base">{stats.misses}</span>
+                            </div>
+                            <div className="w-px h-8 bg-zinc-800 ml-2"></div>
+                            <div className="flex flex-col items-center pl-2">
+                                <span className={`text-${activeColor}-500 text-[8px] font-black uppercase tracking-widest mb-1`}>Pos</span>
+                                <span className="text-white font-black text-sm">{currentIndex + 1}<span className="text-zinc-600">/{activeDeck.length}</span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="w-full max-w-4xl flex flex-col items-center gap-8 z-20 mt-20 md:mt-16">
+                        <div className="perspective w-full h-[550px] cursor-pointer group" onClick={() => setIsFlipped(!isFlipped)}>
+                            <div className={`relative w-full h-full duration-700 preserve-3d shadow-2xl rounded-[40px] ${isFlipped ? 'rotate-y-180' : ''}`}>
+                                
+                                {/* FACCIA FRONTALE: SOLO ITALIANO, NO AUDIO */}
+                                <div className="absolute w-full h-full bg-zinc-900 border-[3px] border-zinc-800 rounded-[40px] flex flex-col items-center justify-center p-8 md:p-12 backface-hidden" style={{ transform: "rotateY(0deg) translateZ(1px)" }}>
+                                    <div className="absolute top-10 text-xs font-black text-zinc-600 tracking-[0.4em] uppercase text-center w-full">Target Lock</div>
+                                    <div className="text-3xl md:text-5xl font-black tracking-tighter text-white text-center w-full px-4 break-words drop-shadow-lg leading-tight mb-4">
+                                        {card.it}
+                                    </div>
+                                    <div className={`w-32 h-1.5 bg-${activeColor}-600 rounded-full opacity-70`}></div>
+                                </div>
+
+                                {/* FACCIA RETRO: THAILANDESE + TRASLITTERAZIONE + AUDIT + AUDIO */}
+                                <div className={`absolute w-full h-full bg-${activeColor}-600 border-[3px] border-${activeColor}-400 rounded-[40px] flex flex-col items-center justify-between p-6 md:p-10 backface-hidden`} style={{ transform: "rotateY(180deg) translateZ(2px)" }}>
+                                    <div className={`text-xs uppercase tracking-[0.5em] text-${activeColor}-200 font-black mt-2 text-center w-full`}>Decrypted Data</div>
+                                    
+                                    <div className="text-3xl md:text-4xl font-black text-white drop-shadow-2xl text-center w-full whitespace-normal break-words px-2 mt-4 leading-tight">
+                                        {card.action}
+                                    </div>
+                                    
+                                    <div className="bg-black/30 backdrop-blur-md p-6 rounded-[30px] text-center border border-white/10 w-full max-w-2xl mt-4 shadow-2xl shrink-0 flex flex-col items-center">
+                                        <div className={`text-[10px] uppercase text-${activeColor}-200 mb-3 font-black tracking-[0.3em] border-b border-${activeColor}-300/20 pb-2 flex items-center justify-center gap-2 w-full`}>
+                                            <i className="fas fa-bolt"></i> Contesto (Audit)
+                                        </div>
+                                        <p className="text-base md:text-lg font-bold leading-tight text-white w-full whitespace-normal break-words px-2 mb-4">
+                                            {card.audit}
+                                        </p>
+                                        
+                                        <button onClick={(e) => playAudio(e, card.action, 'th-TH')} className={`p-4 bg-zinc-900/50 hover:bg-white hover:text-${activeColor}-600 rounded-full transition-all active:scale-90 shadow-xl border border-white/20`}>
+                                            <i className="fas fa-volume-up text-xl"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="w-full mt-4 bg-zinc-950/80 p-4 rounded-[30px] flex justify-center items-center gap-8 border border-zinc-800/50 shadow-inner" onClick={(e) => e.stopPropagation()}>
+                                        <button onClick={(e) => handleScore(false, e)} className={`flex flex-col items-center gap-2 group px-6 py-2 rounded-2xl ${deviceType === 'desktop' ? 'hover:bg-red-500/10' : 'active:bg-red-500/20 active:scale-95'} transition-all`}>
+                                            <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center text-xl border-2 border-red-500/30 group-hover:bg-red-500 group-hover:text-white group-hover:border-red-500 md:group-hover:scale-110 transition-all">
+                                                <i className="fas fa-times"></i>
+                                            </div>
+                                        </button>
+                                        <div className="w-1 h-10 rounded-full bg-zinc-800"></div>
+                                        <button onClick={(e) => handleScore(true, e)} className={`flex flex-col items-center gap-2 group px-6 py-2 rounded-2xl ${deviceType === 'desktop' ? 'hover:bg-green-500/10' : 'active:bg-green-500/20 active:scale-95'} transition-all`}>
+                                            <div className="w-12 h-12 rounded-full bg-green-500/10 text-green-400 flex items-center justify-center text-xl border-2 border-green-500/30 group-hover:bg-green-500 group-hover:text-white group-hover:border-green-500 md:group-hover:scale-110 transition-all">
+                                                <i className="fas fa-check"></i>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
